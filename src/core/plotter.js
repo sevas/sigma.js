@@ -326,6 +326,7 @@ function Plotter(nodesCtx, edgesCtx, labelsCtx, hoverCtx, graph, w, h) {
 
     var ctx = edgesCtx;
 
+
     switch (edge['type'] || self.p.defaultEdgeType) {
       case 'curve':
         ctx.strokeStyle = color;
@@ -345,10 +346,123 @@ function Plotter(nodesCtx, edgesCtx, labelsCtx, hoverCtx, graph, w, h) {
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-
         ctx.stroke();
         break;
     }
+
+
+    /**
+     * Computes the length of a 2D vector
+     * @param  {Array} v A 2D vector.
+     * @return {float} The computed length.
+     */
+    function vectorLen(v){
+      return Math.sqrt(v[0]*v[0] + v[1]*v[1]);
+    };
+
+    /**
+     * Computes a normalized version of a 2D vector
+     * @param  {Array} v A 2D vector.
+     * @return {Array} The normalized vector.
+     */
+    function norm(v){
+      var len = vectorLen(v);
+      return [v[0]/len, v[1]/len];
+    };
+
+
+    /**
+     * Computes the dot product of two 2D vectors
+     * @param  {Array} v1 A 2D vector.
+     * @param  {Array} v2 A 2D vector.
+     * @return {float} The computed dot product.
+     */
+    function dotProduct(v1, v2){
+      return v1[0] * v2[0] + v1[1] * v2[1];
+    };
+
+
+    /**
+     * Computes the dot product of two 2D vectors
+     * @param  {Array} v1 A 2D vector.
+     * @param  {Array} v2 A 2D vector.
+     * @return {Array} The rotated vector.
+     */
+    function subVectors(v1, v2) {
+      return [v1[0] - v2[0], v1[1] - v2[1]];
+    };
+
+
+    /**
+     * Computes the dot product of two 2D vectors
+     * @param  {Array} v A 2D vector.
+     * @param  {float} angle The rotation angle, in radians.
+     * @return {Array} The rotated vector.
+     */
+    function rotate(v, angle){
+      return [v[0] * Math.cos(angle) - v[1] * Math.sin(angle),
+              v[0] * Math.sin(angle) + v[1] * Math.cos(angle)];
+    };
+
+    /**
+     * Scales a 2D vector
+     * @param  {Array} v A 2D vector.
+     * @param  {float} scaling The scaling factor.
+     * @return {Array} The scaled vector.
+     */
+    function scaleVector(v, scaling){
+      return [v[0] * scaling, v[1] * scaling];
+    };
+
+
+    function drawArrow(ctx, direction, arrowSize, nodeSize){
+      // Arrows are drawn along the given direction, from the current
+      // context position.
+
+      // for curved edges, we need to correct the direction
+      // along which the arrow will be drawn
+      if (edge['type'] == 'curve'|| self.p.defaultEdgeType == 'curve') {
+        // ideally, we should use the curve derivative at the endpoint
+        // but this looks good enough for now
+        direction = rotate(direction, Math.PI / 7);
+      }
+
+
+      // we displace the arrow tip along the direction, so
+      // it does not intersect with the target node
+      var tipPoint = scaleVector(direction, nodeSize*(1.1));
+
+      ctx.save();
+      ctx.translate(tipPoint[0], tipPoint[1]);
+
+      var p, q;
+      p = rotate(direction,  Math.PI / 8);
+      q = rotate(direction, -Math.PI / 8);
+
+      p = scaleVector(p, arrowSize);
+      q = scaleVector(q, arrowSize);
+
+      ctx.fillStyle = edge['source']['color'];
+      ctx.strokeStyle = "#fff";
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(p[0],p[1]);
+      ctx.lineTo(q[0],q[1]);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+
+    };
+
+    var targetSize = edge['target']['displaySize'];
+    ctx.save();
+    ctx.translate(x2, y2);
+    var arrowDirection = norm(subVectors([x1, y1], [x2, y2]));
+    drawArrow(ctx, arrowDirection, targetSize, targetSize);
+    ctx.restore();
+
+
 
     return self;
   };
