@@ -415,17 +415,10 @@ function Plotter(nodesCtx, edgesCtx, labelsCtx, hoverCtx, graph, w, h) {
     };
 
 
+
     function drawArrow(ctx, direction, arrowSize, nodeSize){
       // Arrows are drawn along the given direction, from the current
       // context position.
-
-      // for curved edges, we need to correct the direction
-      // along which the arrow will be drawn
-      if (edge['type'] == 'curve'|| self.p.defaultEdgeType == 'curve') {
-        // ideally, we should use the curve derivative at the endpoint
-        // but this looks good enough for now
-        direction = rotate(direction, Math.PI / 7);
-      }
 
 
       // we displace the arrow tip along the direction, so
@@ -455,10 +448,32 @@ function Plotter(nodesCtx, edgesCtx, labelsCtx, hoverCtx, graph, w, h) {
 
     };
 
+
+
+
     var targetSize = edge['target']['displaySize'];
     ctx.save();
     ctx.translate(x2, y2);
-    var arrowDirection = norm(subVectors([x1, y1], [x2, y2]));
+
+    var arrowDirection;
+    switch (edge['type'] || self.p.defaultEdgeType) {
+      case 'curve':
+        // for curved edges, we need to correct the direction
+        // along which the arrow will be drawn.
+        // We use the bezier control point as basis.
+
+        var controlPoint = [(x1 + x2) / 2 + (y2 - y1) / 4,
+                            (y1 + y2) / 2 + (x1 - x2) / 4];
+        var controlDir = norm(subVectors(controlPoint, [x2, y2]));
+
+        arrowDirection = controlDir;
+        break;
+      case 'line':
+      default:
+        arrowDirection = norm(subVectors([x1, y1], [x2, y2]));
+        break;
+    };
+
     drawArrow(ctx, arrowDirection, targetSize, targetSize);
     ctx.restore();
 
